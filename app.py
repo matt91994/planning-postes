@@ -5,8 +5,7 @@ import json
 import io
 import os
 import sqlite3
-
-app = Flask(__name__, static_folder='.')
+app = Flask(__name__, static_folder='static')
 CORS(app)
 
 DB_PATH = os.environ.get('DB_PATH', 'planning.db')
@@ -67,7 +66,7 @@ init_db()
 # ===== ROUTES CONFIG =====
 @app.route('/')
 def index():
-    return send_from_directory('.', 'index.html')
+   return send_from_directory('static', 'index.html')
 
 @app.route('/config', methods=['GET'])
 def get_config():
