@@ -5,12 +5,13 @@ import json
 import io
 import os
 
-app = Flask(__name__, static_folder='static')
+app = Flask(__name__, static_folder='.')
 CORS(app)
 
 @app.route('/')
 def index():
-    return send_from_directory('static', 'index.html')
+    return send_from_directory('.', 'index.html')
+
 
 @app.route('/export', methods=['POST'])
 def export():
