@@ -149,7 +149,6 @@
   </div>
   <div style="display:flex;gap:8px;flex-wrap:wrap">
     <button class="btn-save" onclick="sauvegarder()">💾 Sauvegarder</button>
-    <label class="btn-load" style="cursor:pointer">📂 Charger<input type="file" accept=".json" style="display:none" onchange="chargerConfig(this)"></label>
     <button class="btn-reset" onclick="reinitialiser()">🗑️ Réinitialiser</button>
   </div>
 </div>
@@ -280,40 +279,37 @@ function showTab(name, btn) {
   if (name === 'export') renderExportCellules();
 }
 
-// ===== SAUVEGARDE =====
-function sauvegarder() {
-  const data = { version:1, employes: employes.map(e=>({...e,absent:false})), postes, nextEmpId, nextPostId };
-  const blob = new Blob([JSON.stringify(data,null,2)], {type:'application/json'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a'); a.href=url; a.download='planning_config.json'; a.click();
-  URL.revokeObjectURL(url);
-  document.getElementById('save-status').textContent = '✅ Sauvegardé — ' + new Date().toLocaleTimeString('fr-FR');
-  document.getElementById('save-status').className = 'savebar-status saved';
-  showToast('✅ Configuration sauvegardée !');
+// ===== SAUVEGARDE SERVEUR =====
+async function sauvegarder() {
+  try {
+    const data = { employes: employes.map(e=>({...e,absent:false})), postes, nextEmpId: String(nextEmpId), nextPostId: String(nextPostId) };
+    const resp = await fetch('/config', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(data) });
+    if (!resp.ok) throw new Error();
+    document.getElementById('save-status').textContent = '✅ Sauvegardé — ' + new Date().toLocaleTimeString('fr-FR');
+    document.getElementById('save-status').className = 'savebar-status saved';
+    showToast('✅ Sauvegardé sur le serveur !');
+  } catch { showToast('❌ Erreur de sauvegarde', 'error'); }
 }
 
-function chargerConfig(input) {
-  const file = input.files[0]; if (!file) return;
-  const reader = new FileReader();
-  reader.onload = e => {
-    try {
-      const data = JSON.parse(e.target.result);
-      employes = data.employes; postes = data.postes;
-      nextEmpId = data.nextEmpId || (Math.max(0,...employes.map(e=>e.id))+1);
-      nextPostId = data.nextPostId || (Math.max(0,...postes.map(p=>p.id))+1);
-      planning = {};
-      renderEmployes(); renderPostes(); updateStats(); updateExportBtn();
-      document.getElementById('save-status').textContent = '📂 Chargé : ' + file.name;
-      document.getElementById('save-status').className = 'savebar-status saved';
-      showToast('📂 Configuration chargée !');
-    } catch { showToast('❌ Fichier invalide', 'error'); }
-  };
-  reader.readAsText(file); input.value='';
+async function chargerDepuisServeur() {
+  try {
+    const resp = await fetch('/config');
+    const data = await resp.json();
+    if (data.employes) employes = data.employes;
+    if (data.postes) postes = data.postes;
+    if (data.nextEmpId) nextEmpId = parseInt(data.nextEmpId) || 1;
+    if (data.nextPostId) nextPostId = parseInt(data.nextPostId) || 27;
+    planning = {};
+    renderEmployes(); renderPostes(); updateStats(); updateExportBtn();
+    document.getElementById('save-status').textContent = '✅ Données chargées';
+    document.getElementById('save-status').className = 'savebar-status saved';
+  } catch { showToast('❌ Impossible de charger les données', 'error'); }
 }
 
 function reinitialiser() {
   if (!confirm('Réinitialiser toutes les données ?')) return;
   employes=[]; postes=[]; planning={}; nextEmpId=1; nextPostId=1;
+  sauvegarder();
   renderEmployes(); renderPostes(); updateStats(); updateExportBtn();
   showToast('🗑️ Données réinitialisées');
 }
@@ -518,9 +514,8 @@ function updateStats(){
   document.getElementById('stat-ko').textContent=Object.values(planning).filter(r=>r.status!=='ok').length;
 }
 
-renderEmployes();
-renderPostes();
-updateStats();
+// Charger depuis serveur au démarrage
+chargerDepuisServeur();
 </script>
 </body>
 </html>
