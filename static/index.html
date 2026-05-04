@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Planning des Postes</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0d1117; --surface: #161b22; --surface2: #21262d;
+    --border: #30363d; --text: #e6edf3; --muted: #7d8590;
+    --blue: #388bfd; --purple: #a371f7; --green: #3fb950;
+    --red: #f85149; --orange: #d29922; --teal: #2dd4bf;
+  }
+  body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; padding: 24px 16px 60px; }
+
+  .header { text-align: center; margin-bottom: 20px; }
+  .badge { display: inline-flex; align-items: center; gap: 8px; background: linear-gradient(90deg,#1f3a6e,#2d1f6e); border: 1px solid #388bfd44; padding: 6px 18px; border-radius: 30px; font-size: 11px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: #93bbfd; margin-bottom: 12px; }
+  h1 { font-size: 26px; font-weight: 800; color: #fff; }
+  .subtitle { color: var(--muted); font-size: 13px; margin-top: 6px; }
+
+  .savebar { max-width: 800px; margin: 0 auto 20px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  .savebar-left { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .savebar-status { font-size: 12px; color: var(--muted); }
+  .savebar-status.saved { color: #7ee787; }
+  .btn-save { background: linear-gradient(90deg,#1a3a22,#1f3a2e); border: 1px solid #3fb95055; color: #7ee787; padding: 7px 16px; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer; font-family: 'DM Sans', sans-serif; }
+  .btn-load { background: linear-gradient(90deg,#1f3a6e,#2d1f6e); border: 1px solid #388bfd44; color: #93bbfd; padding: 7px 16px; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer; font-family: 'DM Sans', sans-serif; }
+  .btn-reset { background: none; border: 1px solid #f8514933; color: var(--red); padding: 7px 14px; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer; font-family: 'DM Sans', sans-serif; }
+
+  .stats { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-bottom: 24px; }
+  .stat { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 11px 16px; text-align: center; min-width: 82px; }
+  .stat-val { font-size: 22px; font-weight: 800; margin: 2px 0; }
+  .stat-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+
+  .tabs { display: flex; gap: 4px; justify-content: center; flex-wrap: wrap; margin-bottom: 22px; }
+  .tab { padding: 8px 16px; border-radius: 8px; border: 1px solid transparent; cursor: pointer; font-size: 13px; font-weight: 600; color: var(--muted); background: var(--surface); transition: all 0.2s; font-family: 'DM Sans', sans-serif; }
+  .tab:hover { color: var(--text); border-color: var(--border); }
+  .tab.active { background: linear-gradient(90deg,#1f3a6e,#2d1f6e); color: #93bbfd; border-color: #388bfd55; }
+
+  .content { max-width: 800px; margin: 0 auto; }
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px; margin-bottom: 14px; }
+  .card-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 12px; }
+
+  .form-inline { display: flex; gap: 8px; flex-wrap: wrap; }
+  input[type=text], select { flex: 1; padding: 9px 13px; border-radius: 8px; background: var(--surface2); border: 1px solid var(--border); color: var(--text); font-size: 14px; font-family: 'DM Sans', sans-serif; outline: none; transition: border-color 0.2s; min-width: 0; }
+  input[type=text]:focus, select:focus { border-color: var(--blue); }
+  select option { background: var(--surface2); }
+
+  .btn { padding: 9px 18px; border-radius: 8px; border: none; cursor: pointer; font-size: 13px; font-weight: 700; font-family: 'DM Sans', sans-serif; transition: all 0.2s; white-space: nowrap; }
+  .btn:hover { opacity: 0.85; }
+  .btn-blue { background: var(--blue); color: #fff; }
+  .btn-purple { background: var(--purple); color: #fff; }
+  .btn-green { background: var(--green); color: #fff; }
+  .btn-big { padding: 13px 32px; font-size: 15px; border-radius: 10px; box-shadow: 0 4px 20px #388bfd44; }
+  .btn:disabled { opacity: 0.3; cursor: not-allowed; }
+  .btn-del { background: none; border: none; color: var(--red); cursor: pointer; font-size: 16px; padding: 4px 6px; flex-shrink: 0; }
+  .btn-sm { padding: 5px 12px; font-size: 12px; border-radius: 6px; }
+
+  .emp-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; margin-bottom: 10px; overflow: hidden; }
+  .emp-card.absent { border-color: var(--red); opacity: 0.6; }
+  .emp-header { padding: 12px 14px; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .emp-header-left { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; }
+  .avatar { width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 13px; flex-shrink: 0; background: linear-gradient(135deg,#1f3a6e,#2d1f6e); color: #93bbfd; }
+  .emp-name { font-weight: 700; font-size: 14px; }
+  .emp-actions { display: flex; align-items: center; gap: 6px; }
+  .toggle-abs { display: flex; align-items: center; gap: 6px; cursor: pointer; padding: 5px 10px; border-radius: 6px; font-size: 12px; font-weight: 600; border: 1px solid transparent; transition: all 0.15s; }
+  .toggle-abs.present { background: #1a3a2244; color: #7ee787; border-color: #3fb95033; }
+  .toggle-abs.absent { background: #3a111144; color: #fca5a5; border-color: #f8514933; }
+  .emp-body { padding: 0 14px 12px; border-top: 1px solid var(--border); padding-top: 10px; }
+  .postes-assignes { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 8px; }
+  .poste-chip { padding: 3px 10px; border-radius: 6px; font-size: 11px; font-weight: 600; background: #2d1f6e44; color: #c9a7fb; border: 1px solid #a371f733; display: inline-flex; align-items: center; gap: 5px; }
+  .chip-del { background: none; border: none; color: #a371f7; cursor: pointer; font-size: 13px; line-height: 1; padding: 0; }
+  .add-row { display: flex; gap: 6px; }
+  .add-row select { font-size: 12px; padding: 5px 10px; }
+
+  .post-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; gap: 10px; flex-wrap: wrap; }
+  .post-info { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; }
+  .avatar-sq { border-radius: 8px; background: linear-gradient(135deg,#2d1f6e,#1f3a6e); color: #c9a7fb; }
+  .post-name { font-weight: 700; font-size: 14px; }
+  .post-meta { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
+
+  .tag { padding: 2px 9px; border-radius: 6px; font-size: 11px; font-weight: 600; display: inline-block; }
+  .tag-green { background: #1a3a2244; color: #7ee787; border: 1px solid #3fb95033; }
+  .tag-red { background: #3a111144; color: #fca5a5; border: 1px solid #f8514933; }
+  .tag-orange { background: #3a2a1044; color: #f0c040; border: 1px solid #d2992233; }
+  .tag-teal { background: #0f2a2a44; color: #5eead4; border: 1px solid #2dd4bf33; }
+
+  .prio-toggle { display: flex; border-radius: 6px; overflow: hidden; border: 1px solid var(--border); }
+  .prio-btn { padding: 4px 10px; font-size: 11px; font-weight: 700; cursor: pointer; border: none; font-family: 'DM Sans', sans-serif; background: var(--surface); color: var(--muted); border-right: 1px solid var(--border); }
+  .prio-btn:last-child { border-right: none; }
+  .prio-btn.act-1 { background: #f85149; color: #fff; }
+  .prio-btn.act-2 { background: #3a2a1077; color: #f0c040; }
+  .prio-btn.act-3 { background: #0f2a2a77; color: #5eead4; }
+
+  .plan-section-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; margin: 16px 0 8px; padding: 6px 12px; border-radius: 6px; }
+  .plan-section-title:first-child { margin-top: 0; }
+  .sec-1 { background: #1a3a2233; color: #7ee787; border: 1px solid #3fb95033; }
+  .sec-2 { background: #3a2a1033; color: #f0c040; border: 1px solid #d2992233; }
+  .sec-3 { background: #0f2a2a33; color: #5eead4; border: 1px solid #2dd4bf33; }
+
+  .planning-item { border-radius: 10px; padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; gap: 12px; flex-wrap: wrap; }
+  .planning-ok { background: #1a3a2233; border: 1px solid #3fb95044; }
+  .planning-fail { background: #3a111133; border: 1px solid #f8514944; }
+  .planning-skip { background: #3a2a1022; border: 1px dashed #d2992244; opacity: 0.75; }
+  .assigned { background: #1a3a2255; border: 1px solid #3fb95066; border-radius: 8px; padding: 6px 14px; color: #7ee787; font-weight: 700; font-size: 13px; }
+  .unassigned { background: #3a111155; border: 1px solid #f8514966; border-radius: 8px; padding: 6px 14px; color: #fca5a5; font-weight: 700; font-size: 13px; }
+  .skipped { background: #3a2a1055; border: 1px solid #d2992255; border-radius: 8px; padding: 6px 14px; color: #f0c040; font-weight: 700; font-size: 13px; }
+
+  .info-box { border-radius: 10px; padding: 12px 16px; margin-bottom: 10px; font-size: 13px; }
+  .info-box.warning { background: #3a2a1033; border: 1px solid #d2992255; color: #f0c040; }
+  .info-box.error { background: #3a111133; border: 1px solid #f8514944; color: #fca5a5; }
+  .info-box p { margin-bottom: 3px; }
+
+  .empty { text-align: center; padding: 40px 20px; color: var(--muted); }
+  .empty-icon { font-size: 40px; margin-bottom: 10px; }
+
+  .file-label { display: inline-block; padding: 9px 18px; border-radius: 8px; background: var(--surface2); border: 1px dashed var(--border); color: var(--muted); cursor: pointer; font-size: 13px; font-weight: 600; }
+  .file-label:hover { border-color: var(--blue); color: var(--text); }
+
+  .export-row { display: flex; align-items: center; justify-content: space-between; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; margin-bottom: 8px; gap: 10px; }
+  .cell-input { width: 80px !important; flex: none !important; text-align: center; font-family: 'DM Mono', monospace; font-size: 13px; }
+
+  .section-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 8px; margin-top: 14px; }
+
+  .toast { position: fixed; bottom: 24px; right: 24px; background: #1a3a22; border: 1px solid #3fb95066; color: #7ee787; padding: 12px 20px; border-radius: 10px; font-size: 13px; font-weight: 600; opacity: 0; transform: translateY(10px); transition: all 0.3s; pointer-events: none; z-index: 999; }
+  .toast.show { opacity: 1; transform: translateY(0); }
+  .toast.error { background: #3a1111; border-color: #f8514966; color: #fca5a5; }
+
+  .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid #ffffff44; border-top-color: #fff; border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; margin-right: 6px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="badge">📋 Planning Automatique</div>
+  <h1>Gestion des Postes</h1>
+  <p class="subtitle">Affectation intelligente · Absences · Priorités</p>
+</div>
+
+<div class="savebar">
+  <div class="savebar-left">
+    <span style="font-size:13px;font-weight:700;color:var(--text)">💾 Configuration</span>
+    <span class="savebar-status" id="save-status">Non sauvegardé</span>
+  </div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <button class="btn-save" onclick="sauvegarder()">💾 Sauvegarder</button>
+    <label class="btn-load" style="cursor:pointer">📂 Charger<input type="file" accept=".json" style="display:none" onchange="chargerConfig(this)"></label>
+    <button class="btn-reset" onclick="reinitialiser()">🗑️ Réinitialiser</button>
+  </div>
+</div>
+
+<div class="stats">
+  <div class="stat"><div class="stat-val" id="stat-emp" style="color:var(--blue)">0</div><div class="stat-label">👤 Employés</div></div>
+  <div class="stat"><div class="stat-val" id="stat-abs" style="color:var(--red)">0</div><div class="stat-label">🤒 Absents</div></div>
+  <div class="stat"><div class="stat-val" id="stat-post" style="color:var(--purple)">0</div><div class="stat-label">🏢 Postes</div></div>
+  <div class="stat"><div class="stat-val" id="stat-ok" style="color:var(--green)">0</div><div class="stat-label">✅ Affectés</div></div>
+  <div class="stat"><div class="stat-val" id="stat-ko" style="color:var(--orange)">0</div><div class="stat-label">⚠️ Non pourvus</div></div>
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="showTab('employes',this)">👤 Employés</button>
+  <button class="tab" onclick="showTab('postes',this)">🏢 Postes</button>
+  <button class="tab" onclick="showTab('planning',this)">📅 Planning</button>
+  <button class="tab" onclick="showTab('export',this)">📤 Export Excel</button>
+</div>
+
+<div class="content">
+  <div class="panel active" id="panel-employes">
+    <div class="card">
+      <div class="card-title" style="color:#93bbfd">➕ Ajouter un employé</div>
+      <div class="form-inline">
+        <input type="text" id="emp-nom" placeholder="Nom complet" onkeydown="if(event.key==='Enter')ajouterEmploye()">
+        <button class="btn btn-blue" onclick="ajouterEmploye()">Ajouter</button>
+      </div>
+    </div>
+    <div id="liste-employes"></div>
+  </div>
+
+  <div class="panel" id="panel-postes">
+    <div class="card">
+      <div class="card-title" style="color:#c9a7fb">➕ Ajouter un poste</div>
+      <div class="form-inline">
+        <input type="text" id="post-nom" placeholder="Nom du poste" onkeydown="if(event.key==='Enter')ajouterPoste()">
+        <input type="text" id="post-cell" placeholder="Cellule (B2)" style="max-width:110px;flex:none" onkeydown="if(event.key==='Enter')ajouterPoste()">
+        <button class="btn btn-purple" onclick="ajouterPoste()">Ajouter</button>
+      </div>
+      <div style="font-size:11px;color:var(--muted);margin-top:8px;">🔴 Prioritaire | 🟡 Secondaire | 🔵 Tertiaire</div>
+    </div>
+    <div id="liste-postes"></div>
+  </div>
+
+  <div class="panel" id="panel-planning">
+    <div style="text-align:center;margin-bottom:20px;">
+      <button class="btn btn-blue btn-big" onclick="genererPlanning()">⚡ Générer le Planning</button>
+    </div>
+    <div id="alertes-planning"></div>
+    <div id="liste-planning">
+      <div class="empty"><div class="empty-icon">📋</div><div>Cliquez sur "Générer"</div></div>
+    </div>
+  </div>
+
+  <div class="panel" id="panel-export">
+    <div class="card">
+      <div class="card-title" style="color:#7ee787">📂 Fichier Excel (optionnel)</div>
+      <p style="color:var(--muted);font-size:13px;margin-bottom:12px;">Importez votre grille déjà formatée. Les noms seront insérés aux bons endroits.</p>
+      <label class="file-label">📎 Choisir un fichier .xlsx<input type="file" id="excel-input" accept=".xlsx,.xls" style="display:none" onchange="onExcelChange(this)"></label>
+      <span id="excel-nom" style="margin-left:12px;color:#7ee787;font-size:13px;"></span>
+    </div>
+    <div class="card">
+      <div class="card-title" style="color:#93bbfd">📍 Poste → Cellule Excel</div>
+      <div id="export-cellules"></div>
+    </div>
+    <div style="text-align:center;margin-top:8px;">
+      <div id="export-warning" style="color:var(--orange);font-size:13px;margin-bottom:10px;">⚠️ Générez d'abord le planning</div>
+      <button class="btn btn-green btn-big" id="btn-export" onclick="exporterExcel()" disabled>📥 Télécharger le fichier Excel</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ===== DONNÉES =====
+let postes = [
+  { id:1,  nom:"Déchargement",          cellule:"F23", priorite:1 },
+  { id:2,  nom:"Frigo",                 cellule:"F28", priorite:1 },
+  { id:3,  nom:"Coupe droite",          cellule:"I32", priorite:1 },
+  { id:4,  nom:"Coupe gauche",          cellule:"I20", priorite:1 },
+  { id:5,  nom:"Lève droite 1",         cellule:"M32", priorite:1 },
+  { id:6,  nom:"Lève droite 2",         cellule:"Q32", priorite:1 },
+  { id:7,  nom:"Lève gauche 1",         cellule:"M19", priorite:1 },
+  { id:8,  nom:"Lève gauche 2",         cellule:"P19", priorite:1 },
+  { id:9,  nom:"Longe droite",          cellule:"U32", priorite:1 },
+  { id:10, nom:"Longe gauche",          cellule:"U19", priorite:1 },
+  { id:11, nom:"Bout du tapis",         cellule:"W28", priorite:1 },
+  { id:12, nom:"Bout du tapis poitrine",cellule:"S10", priorite:1 },
+  { id:13, nom:"Poitrine",              cellule:"P15", priorite:1 },
+  { id:14, nom:"BK doc1",               cellule:"M17", priorite:1 },
+  { id:15, nom:"BK doc2",               cellule:"M15", priorite:1 },
+  { id:16, nom:"BK commande",           cellule:"M13", priorite:1 },
+  { id:17, nom:"Jambon",                cellule:"K10", priorite:1 },
+  { id:18, nom:"Jambon aide",           cellule:"H15", priorite:1 },
+  { id:19, nom:"Palette doc1",          cellule:"U17", priorite:2 },
+  { id:20, nom:"Palette doc2",          cellule:"U15", priorite:2 },
+  { id:21, nom:"Doc1",                  cellule:"X8",  priorite:2 },
+  { id:22, nom:"Doc2",                  cellule:"X1",  priorite:2 },
+  { id:23, nom:"Doc3",                  cellule:"AD8", priorite:2 },
+  { id:24, nom:"Doc4",                  cellule:"AD1", priorite:3 },
+  { id:25, nom:"Doc5",                  cellule:"AA1", priorite:3 },
+  { id:26, nom:"Doc6",                  cellule:"AA8", priorite:3 },
+];
+let employes = [];
+let planning = {};
+let excelFile = null;
+let nextEmpId = 1;
+let nextPostId = 27;
+
+const PRIO_LABEL = { 1:'🔴 Prioritaire', 2:'🟡 Secondaire', 3:'🔵 Tertiaire' };
+const PRIO_TAG   = { 1:'tag-red', 2:'tag-orange', 3:'tag-teal' };
+const PRIO_ICON  = { 1:'🔴', 2:'🟡', 3:'🔵' };
+const PRIO_SEC   = { 1:'sec-1', 2:'sec-2', 3:'sec-3' };
+
+function showToast(msg, type='ok') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (type==='error' ? ' error' : '');
+  setTimeout(() => t.className = 'toast', 3000);
+}
+
+function showTab(name, btn) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('panel-' + name).classList.add('active');
+  btn.classList.add('active');
+  if (name === 'export') renderExportCellules();
+}
+
+// ===== SAUVEGARDE =====
+function sauvegarder() {
+  const data = { version:1, employes: employes.map(e=>({...e,absent:false})), postes, nextEmpId, nextPostId };
+  const blob = new Blob([JSON.stringify(data,null,2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href=url; a.download='planning_config.json'; a.click();
+  URL.revokeObjectURL(url);
+  document.getElementById('save-status').textContent = '✅ Sauvegardé — ' + new Date().toLocaleTimeString('fr-FR');
+  document.getElementById('save-status').className = 'savebar-status saved';
+  showToast('✅ Configuration sauvegardée !');
+}
+
+function chargerConfig(input) {
+  const file = input.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      employes = data.employes; postes = data.postes;
+      nextEmpId = data.nextEmpId || (Math.max(0,...employes.map(e=>e.id))+1);
+      nextPostId = data.nextPostId || (Math.max(0,...postes.map(p=>p.id))+1);
+      planning = {};
+      renderEmployes(); renderPostes(); updateStats(); updateExportBtn();
+      document.getElementById('save-status').textContent = '📂 Chargé : ' + file.name;
+      document.getElementById('save-status').className = 'savebar-status saved';
+      showToast('📂 Configuration chargée !');
+    } catch { showToast('❌ Fichier invalide', 'error'); }
+  };
+  reader.readAsText(file); input.value='';
+}
+
+function reinitialiser() {
+  if (!confirm('Réinitialiser toutes les données ?')) return;
+  employes=[]; postes=[]; planning={}; nextEmpId=1; nextPostId=1;
+  renderEmployes(); renderPostes(); updateStats(); updateExportBtn();
+  showToast('🗑️ Données réinitialisées');
+}
+
+function marqueSave() {
+  document.getElementById('save-status').textContent = '⚠️ Modifications non sauvegardées';
+  document.getElementById('save-status').className = 'savebar-status';
+}
+
+// ===== EMPLOYÉS =====
+function ajouterEmploye() {
+  const nom = document.getElementById('emp-nom').value.trim(); if (!nom) return;
+  employes.push({ id:nextEmpId++, nom, postesAutorises:[], absent:false });
+  document.getElementById('emp-nom').value = '';
+  renderEmployes(); updateStats(); marqueSave();
+}
+function supprimerEmploye(id) { employes=employes.filter(e=>e.id!==id); renderEmployes(); updateStats(); marqueSave(); }
+function toggleAbsence(id) { const e=employes.find(e=>e.id===id); if(e) e.absent=!e.absent; renderEmployes(); updateStats(); }
+function ajouterPosteAEmploye(empId) {
+  const sel=document.getElementById('sel-'+empId); const pid=parseInt(sel.value); if(!pid) return;
+  const emp=employes.find(e=>e.id===empId);
+  if(emp && !emp.postesAutorises.includes(pid)){ emp.postesAutorises.push(pid); renderEmployes(); marqueSave(); }
+}
+function retirerPoste(empId, posteId) {
+  const emp=employes.find(e=>e.id===empId);
+  if(emp) emp.postesAutorises=emp.postesAutorises.filter(p=>p!==posteId);
+  renderEmployes(); marqueSave();
+}
+function renderEmployes() {
+  const el=document.getElementById('liste-employes');
+  if(!employes.length){ el.innerHTML='<div class="empty"><div class="empty-icon">👤</div><div>Aucun employé</div></div>'; return; }
+  el.innerHTML=employes.map(e=>{
+    const assignes=e.postesAutorises.map(pid=>postes.find(p=>p.id===pid)).filter(Boolean);
+    const dispos=postes.filter(p=>!e.postesAutorises.includes(p.id));
+    return `<div class="emp-card ${e.absent?'absent':''}">
+      <div class="emp-header">
+        <div class="emp-header-left"><div class="avatar">${e.nom.charAt(0).toUpperCase()}</div><div class="emp-name">${e.nom}</div></div>
+        <div class="emp-actions">
+          <button class="toggle-abs ${e.absent?'absent':'present'}" onclick="toggleAbsence(${e.id})">${e.absent?'🤒 Absent':'✅ Présent'}</button>
+          <button class="btn-del" onclick="supprimerEmploye(${e.id})">🗑️</button>
+        </div>
+      </div>
+      <div class="emp-body">
+        ${assignes.length?`<div class="postes-assignes">${assignes.map(p=>`<span class="poste-chip">${p.nom}<button class="chip-del" onclick="retirerPoste(${e.id},${p.id})">✕</button></span>`).join('')}</div>`:`<div style="font-size:12px;color:var(--muted);margin-bottom:8px;">Aucun poste maîtrisé</div>`}
+        ${dispos.length?`<div class="add-row"><select id="sel-${e.id}"><option value="">+ Ajouter un poste maîtrisé…</option>${dispos.map(p=>`<option value="${p.id}">${PRIO_ICON[p.priorite]} ${p.nom}</option>`).join('')}</select><button class="btn btn-purple btn-sm" onclick="ajouterPosteAEmploye(${e.id})">OK</button></div>`:postes.length?`<div style="font-size:11px;color:#7ee787">✅ Maîtrise tous les postes</div>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ===== POSTES =====
+function ajouterPoste() {
+  const nom=document.getElementById('post-nom').value.trim();
+  const cellule=document.getElementById('post-cell').value.trim().toUpperCase();
+  if(!nom) return;
+  postes.push({id:nextPostId++,nom,cellule,priorite:1});
+  document.getElementById('post-nom').value=''; document.getElementById('post-cell').value='';
+  renderPostes(); renderEmployes(); updateStats(); marqueSave();
+}
+function supprimerPoste(id) {
+  postes=postes.filter(p=>p.id!==id);
+  employes.forEach(e=>{ e.postesAutorises=e.postesAutorises.filter(p=>p!==id); });
+  renderPostes(); renderEmployes(); updateStats(); marqueSave();
+}
+function setPriorite(id,val) { const p=postes.find(p=>p.id===id); if(p) p.priorite=val; renderPostes(); marqueSave(); }
+function renderPostes() {
+  const el=document.getElementById('liste-postes');
+  if(!postes.length){ el.innerHTML='<div class="empty"><div class="empty-icon">🏢</div><div>Aucun poste</div></div>'; return; }
+  let html='';
+  [1,2,3].forEach(n=>{
+    const grp=postes.filter(p=>p.priorite===n); if(!grp.length) return;
+    const labels={1:'🔴 Postes prioritaires',2:'🟡 Postes secondaires',3:'🔵 Postes tertiaires'};
+    const colors={1:'#7ee787',2:'#f0c040',3:'#5eead4'};
+    html+=`<div class="section-label" style="color:${colors[n]};margin-top:${n>1?'14px':'0'}">${labels[n]} (${grp.length})</div>`;
+    html+=grp.map(p=>`<div class="post-card">
+      <div class="post-info"><div class="avatar avatar-sq">🏢</div>
+        <div><div class="post-name">${p.nom}</div>
+          <div class="post-meta">${p.cellule?`<span class="tag tag-green">📍 ${p.cellule}</span>`:''}<span class="tag ${PRIO_TAG[p.priorite]}">${PRIO_LABEL[p.priorite]}</span></div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <div class="prio-toggle">
+          <button class="prio-btn ${p.priorite===1?'act-1':''}" onclick="setPriorite(${p.id},1)">🔴</button>
+          <button class="prio-btn ${p.priorite===2?'act-2':''}" onclick="setPriorite(${p.id},2)">🟡</button>
+          <button class="prio-btn ${p.priorite===3?'act-3':''}" onclick="setPriorite(${p.id},3)">🔵</button>
+        </div>
+        <button class="btn-del" onclick="supprimerPoste(${p.id})">🗑️</button>
+      </div>
+    </div>`).join('');
+  });
+  el.innerHTML=html;
+}
+
+// ===== PLANNING =====
+function genererPlanning() {
+  planning={}; const utilises=new Set();
+  const empDispos=employes.filter(e=>!e.absent);
+  [1,2,3].forEach(n=>{
+    postes.filter(p=>p.priorite===n).forEach(poste=>{
+      const eligible=empDispos.filter(e=>e.postesAutorises.includes(poste.id)&&!utilises.has(e.id));
+      if(eligible.length>0){ const choisi=eligible[Math.floor(Math.random()*eligible.length)]; planning[poste.id]={employe:choisi,status:'ok'}; utilises.add(choisi.id); }
+      else { const maitrise=empDispos.filter(e=>e.postesAutorises.includes(poste.id)); planning[poste.id]={employe:null,status:maitrise.length>0?'effectif':'manque'}; }
+    });
+  });
+  renderPlanning(); updateStats(); updateExportBtn();
+}
+function renderPlanning() {
+  const listeEl=document.getElementById('liste-planning');
+  const alertesEl=document.getElementById('alertes-planning');
+  if(!postes.length){ listeEl.innerHTML='<div class="empty"><div class="empty-icon">🏢</div><div>Ajoutez des postes</div></div>'; alertesEl.innerHTML=''; return; }
+  const absents=employes.filter(e=>e.absent);
+  const manquants=postes.filter(p=>planning[p.id]&&planning[p.id].status==='manque');
+  const nonPourvu=postes.filter(p=>planning[p.id]&&planning[p.id].status==='effectif');
+  let alertHTML='';
+  if(absents.length) alertHTML+=`<div class="info-box warning"><p>🤒 <strong>${absents.length} absent(s) :</strong> ${absents.map(e=>e.nom).join(', ')}</p></div>`;
+  if(manquants.length) alertHTML+=`<div class="info-box error">${manquants.map(p=>`<p>❌ Personne ne maîtrise <strong>${p.nom}</strong></p>`).join('')}</div>`;
+  if(nonPourvu.length) alertHTML+=`<div class="info-box warning">${nonPourvu.map(p=>`<p>⚠️ <strong>${p.nom}</strong> — manque d'effectif</p>`).join('')}</div>`;
+  alertesEl.innerHTML=alertHTML;
+  let html='';
+  [1,2,3].forEach(n=>{
+    const grp=postes.filter(p=>p.priorite===n); if(!grp.length) return;
+    const titres={1:'🔴 Postes prioritaires',2:'🟡 Postes secondaires',3:'🔵 Postes tertiaires'};
+    html+=`<div class="plan-section-title ${PRIO_SEC[n]}">${titres[n]}</div>`;
+    html+=grp.map(p=>{
+      const r=planning[p.id]; if(!r) return '';
+      let cls='planning-ok', badge=`<div class="assigned">✅ ${r.employe?.nom}</div>`;
+      if(r.status==='manque'){cls='planning-fail';badge=`<div class="unassigned">❌ Personne ne maîtrise</div>`;}
+      else if(r.status==='effectif'){cls='planning-skip';badge=`<div class="skipped">⚠️ Manque d'effectif</div>`;}
+      return `<div class="planning-item ${cls}"><div><div style="font-weight:700;font-size:14px">${p.nom}</div>${p.cellule?`<span class="tag tag-green" style="margin-top:4px;display:inline-block">📍 ${p.cellule}</span>`:''}</div>${badge}</div>`;
+    }).join('');
+  });
+  listeEl.innerHTML=html;
+}
+
+// ===== EXPORT — envoi au serveur Python =====
+function onExcelChange(input) {
+  excelFile = input.files[0] || null;
+  document.getElementById('excel-nom').textContent = excelFile ? '✅ ' + excelFile.name : '';
+}
+
+function renderExportCellules() {
+  const el=document.getElementById('export-cellules');
+  if(!postes.length){ el.innerHTML='<div style="color:var(--muted);font-size:13px;">Ajoutez des postes pour les voir ici.</div>'; return; }
+  el.innerHTML=postes.map(p=>`
+    <div class="export-row">
+      <div style="display:flex;align-items:center;gap:8px"><span style="font-weight:600;font-size:14px">${p.nom}</span><span class="tag ${PRIO_TAG[p.priorite]}">${PRIO_ICON[p.priorite]}</span></div>
+      <div style="display:flex;align-items:center;gap:8px;color:var(--muted);font-size:13px">→ cellule<input type="text" class="cell-input" value="${p.cellule}" placeholder="B2" oninput="majCellule(${p.id},this.value)"></div>
+    </div>`).join('');
+}
+
+function majCellule(id,val){ const p=postes.find(p=>p.id===id); if(p){p.cellule=val.toUpperCase(); renderPostes(); marqueSave();} }
+
+async function exporterExcel() {
+  const btn = document.getElementById('btn-export');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Génération…';
+
+  try {
+    // Construire le planning à envoyer
+    const planningData = postes
+      .filter(p => planning[p.id] && planning[p.id].status === 'ok')
+      .map(p => ({ poste: p.nom, cellule: p.cellule, employe: planning[p.id].employe.nom }));
+
+    const formData = new FormData();
+    formData.append('planning', JSON.stringify(planningData));
+    if (excelFile) formData.append('excel', excelFile);
+
+    const response = await fetch('/export', { method: 'POST', body: formData });
+
+    if (!response.ok) {
+      const err = await response.json();
+      throw new Error(err.error || 'Erreur serveur');
+    }
+
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = excelFile ? excelFile.name : 'planning.xlsx';
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('✅ Fichier Excel téléchargé !');
+
+  } catch(e) {
+    showToast('❌ Erreur : ' + e.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '📥 Télécharger le fichier Excel';
+  }
+}
+
+function updateExportBtn(){
+  const ok=Object.keys(planning).length>0;
+  document.getElementById('btn-export').disabled=!ok;
+  document.getElementById('export-warning').style.display=ok?'none':'block';
+}
+function updateStats(){
+  document.getElementById('stat-emp').textContent=employes.length;
+  document.getElementById('stat-abs').textContent=employes.filter(e=>e.absent).length;
+  document.getElementById('stat-post').textContent=postes.length;
+  document.getElementById('stat-ok').textContent=Object.values(planning).filter(r=>r.status==='ok').length;
+  document.getElementById('stat-ko').textContent=Object.values(planning).filter(r=>r.status!=='ok').length;
+}
+
+renderEmployes();
+renderPostes();
+updateStats();
+</script>
+</body>
+</html>
