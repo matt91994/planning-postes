@@ -1,11 +1,12 @@
-from flask import Flask, request, jsonify, send_file, send_from_directory
+from flask import Flask, request, jsonify, send_file, make_response
 from flask_cors import CORS
 import openpyxl
 import json
 import io
 import os
 import sqlite3
-app = Flask(__name__, static_folder='static')
+
+app = Flask(__name__)
 CORS(app)
 
 DB_PATH = os.environ.get('DB_PATH', 'planning.db')
@@ -17,13 +18,7 @@ def get_db():
 
 def init_db():
     conn = get_db()
-    conn.execute('''
-        CREATE TABLE IF NOT EXISTS config (
-            key TEXT PRIMARY KEY,
-            value TEXT NOT NULL
-        )
-    ''')
-    # Données par défaut si vide
+    conn.execute('''CREATE TABLE IF NOT EXISTS config (key TEXT PRIMARY KEY, value TEXT NOT NULL)''')
     cur = conn.execute("SELECT value FROM config WHERE key='postes'")
     if not cur.fetchone():
         postes_defaut = [
@@ -54,19 +49,26 @@ def init_db():
             {"id":25,"nom":"Doc5","cellule":"AA1","priorite":3},
             {"id":26,"nom":"Doc6","cellule":"AA8","priorite":3},
         ]
-        conn.execute("INSERT INTO config (key, value) VALUES ('postes', ?)", [json.dumps(postes_defaut)])
-        conn.execute("INSERT INTO config (key, value) VALUES ('employes', ?)", [json.dumps([])])
-        conn.execute("INSERT INTO config (key, value) VALUES ('nextEmpId', '1')")
-        conn.execute("INSERT INTO config (key, value) VALUES ('nextPostId', '27')")
+        conn.execute("INSERT INTO config VALUES ('postes', ?)", [json.dumps(postes_defaut)])
+        conn.execute("INSERT INTO config VALUES ('employes', '[]')")
+        conn.execute("INSERT INTO config VALUES ('nextEmpId', '1')")
+        conn.execute("INSERT INTO config VALUES ('nextPostId', '27')")
     conn.commit()
     conn.close()
 
 init_db()
 
-# ===== ROUTES CONFIG =====
 @app.route('/')
 def index():
-   return send_from_directory('static', 'index.html')
+    # Lire index.html depuis le dossier static
+    try:
+        with open(os.path.join(os.path.dirname(__file__), 'static', 'index.html'), 'r', encoding='utf-8') as f:
+            html = f.read()
+        resp = make_response(html)
+        resp.headers['Content-Type'] = 'text/html; charset=utf-8'
+        return resp
+    except FileNotFoundError:
+        return "Fichier index.html introuvable dans static/", 404
 
 @app.route('/config', methods=['GET'])
 def get_config():
@@ -87,49 +89,31 @@ def save_config():
         data = request.get_json()
         conn = get_db()
         for key, value in data.items():
-            conn.execute(
-                "INSERT INTO config (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",
-                [key, json.dumps(value) if not isinstance(value, str) else value]
-            )
+            v = json.dumps(value) if not isinstance(value, str) else value
+            conn.execute("INSERT INTO config VALUES (?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value", [key, v])
         conn.commit()
         conn.close()
         return jsonify({'ok': True})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-# ===== EXPORT EXCEL =====
 @app.route('/export', methods=['POST'])
 def export():
     try:
-        planning_json = request.form.get('planning')
-        planning = json.loads(planning_json)
+        planning = json.loads(request.form.get('planning'))
         excel_file = request.files.get('excel')
-
-        if excel_file:
-            wb = openpyxl.load_workbook(excel_file)
-        else:
-            wb = openpyxl.Workbook()
+        wb = openpyxl.load_workbook(excel_file) if excel_file else openpyxl.Workbook()
+        if not excel_file:
             wb.active.title = "Planning"
-
         ws = wb.active
-
         for item in planning:
-            cellule = item.get('cellule')
-            employe = item.get('employe')
-            if cellule and employe:
-                ws[cellule] = employe
-
+            if item.get('cellule') and item.get('employe'):
+                ws[item['cellule']] = item['employe']
         output = io.BytesIO()
         wb.save(output)
         output.seek(0)
-
         filename = excel_file.filename if excel_file else "planning.xlsx"
-        return send_file(
-            output,
-            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            as_attachment=True,
-            download_name=filename
-        )
+        return send_file(output, mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', as_attachment=True, download_name=filename)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
