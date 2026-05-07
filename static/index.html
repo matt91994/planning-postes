@@ -341,7 +341,8 @@ function retirerPoste(empId, posteId) {
 function renderEmployes() {
   const el=document.getElementById('liste-employes');
   if(!employes.length){ el.innerHTML='<div class="empty"><div class="empty-icon">👤</div><div>Aucun employé</div></div>'; return; }
-  el.innerHTML=employes.map(e=>{
+  const employesTries = [...employes].sort((a,b) => a.nom.localeCompare(b.nom, 'fr'));
+  el.innerHTML=employesTries.map(e=>{
     const assignes=e.postesAutorises.map(pid=>postes.find(p=>p.id===pid)).filter(Boolean);
     const dispos=postes.filter(p=>!e.postesAutorises.includes(p.id));
     return `<div class="emp-card ${e.absent?'absent':''}">
