@@ -5,14 +5,17 @@ import json
 import io
 import os
 import psycopg2
-import psycopg2.extras
 
 app = Flask(__name__)
 CORS(app)
 app.secret_key = os.environ.get('SECRET_KEY', 'planning-secret-2026')
 
 ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'planning2026')
-DATABASE_URL = os.environ.get('DATABASE_URL', 'postgresql://planning_db_xumh_user:VlIqUA6kVy2TR71IUvVvd1AjpMm1KcCf@dpg-d7sivcegkk3c73d9ah20-a/planning_db_xumh')
+DATABASE_URL = os.environ.get('DATABASE_URL', 'postgresql://postgres:g@3FPYtzL96,9dD@db.jdfnmpnmkhkvjalhvrhl.supabase.co:5432/postgres')
+
+EMPLOYES = [{"absent":False,"id":4,"nom":"BRUNO","postesAutorises":[4,10,19,20]},{"absent":False,"id":5,"nom":"NENE","postesAutorises":[3,4,10,18]},{"absent":False,"id":6,"nom":"MAKAN","postesAutorises":[3,18,19,20]},{"absent":False,"id":7,"nom":"FREDDY","postesAutorises":[12,2]},{"absent":False,"id":8,"nom":"DALLA","postesAutorises":[2,12]},{"absent":False,"id":9,"nom":"JEAN SERVA","postesAutorises":[5,6,7,8,14,15,16,19,20,21,22,23,24,25,26]},{"absent":False,"id":10,"nom":"SYLLA","postesAutorises":[5,6,7,8,19,20]},{"absent":False,"id":11,"nom":"ROUSLAN","postesAutorises":[9,19,20]},{"absent":False,"id":12,"nom":"BOMOU","postesAutorises":[10,19,20,21,22,23,24,25,26]},{"absent":False,"id":13,"nom":"JEAN REMY","postesAutorises":[7,6,8,5,19,20]},{"absent":False,"id":14,"nom":"SIDY","postesAutorises":[5,6,7,8,16,19,20,21,22,23,24,25,26]},{"absent":False,"id":15,"nom":"ALEXIS","postesAutorises":[11]},{"absent":False,"id":16,"nom":"MADER","postesAutorises":[1]},{"absent":False,"id":17,"nom":"SYLVAIN LA SOMME","postesAutorises":[13,19,20,21,22,23,24,25,26]},{"absent":False,"id":18,"nom":"FISSIROU","postesAutorises":[14,15,19,20,21,22,23,24,25,26]},{"absent":False,"id":19,"nom":"ABDOULAYE","postesAutorises":[19,20,21,22,23,24,25,26]},{"absent":False,"id":20,"nom":"JEAN EDDY","postesAutorises":[14,15,16,19,20,21,22,23,24,25,26]},{"absent":False,"id":21,"nom":"DIAMBOU","postesAutorises":[15,14,21,22,23,24,25,26]},{"absent":False,"id":22,"nom":"CAMARA","postesAutorises":[5,6,7,8,11,14,15,16,19,20,21,22,23,24,25,26]},{"absent":False,"id":23,"nom":"CÉDRIC","postesAutorises":[16,17,18,19,20]},{"absent":False,"id":24,"nom":"SYLVAIN L","postesAutorises":[17,18]},{"absent":False,"id":25,"nom":"JEAN-MARC","postesAutorises":[21,22,23,24,25,26]},{"absent":False,"id":26,"nom":"TRAORÉ","postesAutorises":[21,22,23,24,25,26]},{"absent":False,"id":27,"nom":"RUI","postesAutorises":[13,21,14,15,22,23,24,25,26]},{"absent":False,"id":28,"nom":"SOULEYMANE","postesAutorises":[9,19,20,21,22,23,24,25,26]},{"absent":False,"id":29,"nom":"SAMOURA","postesAutorises":[19,20,21,22,23,24,25,26,2]},{"absent":False,"id":30,"nom":"DJIBRIL","postesAutorises":[19,20,21,22,23,24,25,26]},{"absent":False,"id":31,"nom":"VIRGIL","postesAutorises":[5,7,6,8,19,20,21,22,23,24,25,26,11]}]
+
+POSTES = [{"cellule":"F23","id":1,"nom":"Déchargement","priorite":1},{"cellule":"F28","id":2,"nom":"Frigo","priorite":1},{"cellule":"I32","id":3,"nom":"Coupe droite","priorite":1},{"cellule":"I20","id":4,"nom":"Coupe gauche","priorite":1},{"cellule":"M32","id":5,"nom":"Lève droite 1","priorite":1},{"cellule":"Q32","id":6,"nom":"Lève droite 2","priorite":1},{"cellule":"M19","id":7,"nom":"Lève gauche 1","priorite":1},{"cellule":"P19","id":8,"nom":"Lève gauche 2","priorite":1},{"cellule":"U32","id":9,"nom":"Longe droite","priorite":1},{"cellule":"U19","id":10,"nom":"Longe gauche","priorite":1},{"cellule":"W28","id":11,"nom":"Bout du tapis","priorite":1},{"cellule":"S10","id":12,"nom":"Bout du tapis poitrine","priorite":1},{"cellule":"P15","id":13,"nom":"Poitrine","priorite":1},{"cellule":"M17","id":14,"nom":"BK doc1","priorite":1},{"cellule":"M15","id":15,"nom":"BK doc2","priorite":1},{"cellule":"M13","id":16,"nom":"BK commande","priorite":1},{"cellule":"K10","id":17,"nom":"Jambon","priorite":1},{"cellule":"H15","id":18,"nom":"Jambon aide","priorite":1},{"cellule":"U17","id":19,"nom":"Palette doc1","priorite":2},{"cellule":"U15","id":20,"nom":"Palette doc2","priorite":2},{"cellule":"X8","id":21,"nom":"Doc1","priorite":2},{"cellule":"X1","id":22,"nom":"Doc2","priorite":2},{"cellule":"AD8","id":23,"nom":"Doc3","priorite":2},{"cellule":"AD1","id":24,"nom":"Doc4","priorite":3},{"cellule":"AA1","id":25,"nom":"Doc5","priorite":3},{"cellule":"AA8","id":26,"nom":"Doc6","priorite":3}]
 
 def get_db():
     conn = psycopg2.connect(DATABASE_URL)
@@ -21,40 +24,12 @@ def get_db():
 def init_db():
     conn = get_db()
     cur = conn.cursor()
-    cur.execute('''CREATE TABLE IF NOT EXISTS config (key TEXT PRIMARY KEY, value TEXT NOT NULL)''')
+    cur.execute('CREATE TABLE IF NOT EXISTS config (key TEXT PRIMARY KEY, value TEXT NOT NULL)')
     cur.execute("SELECT value FROM config WHERE key='postes'")
     if not cur.fetchone():
-        postes_defaut = [
-            {"id":1,"nom":"Déchargement","cellule":"F23","priorite":1},
-            {"id":2,"nom":"Frigo","cellule":"F28","priorite":1},
-            {"id":3,"nom":"Coupe droite","cellule":"I32","priorite":1},
-            {"id":4,"nom":"Coupe gauche","cellule":"I20","priorite":1},
-            {"id":5,"nom":"Lève droite 1","cellule":"M32","priorite":1},
-            {"id":6,"nom":"Lève droite 2","cellule":"Q32","priorite":1},
-            {"id":7,"nom":"Lève gauche 1","cellule":"M19","priorite":1},
-            {"id":8,"nom":"Lève gauche 2","cellule":"P19","priorite":1},
-            {"id":9,"nom":"Longe droite","cellule":"U32","priorite":1},
-            {"id":10,"nom":"Longe gauche","cellule":"U19","priorite":1},
-            {"id":11,"nom":"Bout du tapis","cellule":"W28","priorite":1},
-            {"id":12,"nom":"Bout du tapis poitrine","cellule":"S10","priorite":1},
-            {"id":13,"nom":"Poitrine","cellule":"P15","priorite":1},
-            {"id":14,"nom":"BK doc1","cellule":"M17","priorite":1},
-            {"id":15,"nom":"BK doc2","cellule":"M15","priorite":1},
-            {"id":16,"nom":"BK commande","cellule":"M13","priorite":1},
-            {"id":17,"nom":"Jambon","cellule":"K10","priorite":1},
-            {"id":18,"nom":"Jambon aide","cellule":"H15","priorite":1},
-            {"id":19,"nom":"Palette doc1","cellule":"U17","priorite":2},
-            {"id":20,"nom":"Palette doc2","cellule":"U15","priorite":2},
-            {"id":21,"nom":"Doc1","cellule":"X8","priorite":2},
-            {"id":22,"nom":"Doc2","cellule":"X1","priorite":2},
-            {"id":23,"nom":"Doc3","cellule":"AD8","priorite":2},
-            {"id":24,"nom":"Doc4","cellule":"AD1","priorite":3},
-            {"id":25,"nom":"Doc5","cellule":"AA1","priorite":3},
-            {"id":26,"nom":"Doc6","cellule":"AA8","priorite":3},
-        ]
-        cur.execute("INSERT INTO config VALUES (%s,%s)", ('postes', json.dumps(postes_defaut)))
-        cur.execute("INSERT INTO config VALUES (%s,%s)", ('employes', '[]'))
-        cur.execute("INSERT INTO config VALUES (%s,%s)", ('nextEmpId', '1'))
+        cur.execute("INSERT INTO config VALUES (%s,%s)", ('postes', json.dumps(POSTES)))
+        cur.execute("INSERT INTO config VALUES (%s,%s)", ('employes', json.dumps(EMPLOYES)))
+        cur.execute("INSERT INTO config VALUES (%s,%s)", ('nextEmpId', '32'))
         cur.execute("INSERT INTO config VALUES (%s,%s)", ('nextPostId', '27'))
     conn.commit()
     cur.close()
