@@ -5,6 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Planning des Postes</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@500&display=swap" rel="stylesheet">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Planning">
+<meta name="theme-color" content="#0d1117">
+<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%230d1117'/><text y='.9em' font-size='80'>📋</text></svg>">
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
@@ -13,7 +19,11 @@
     --blue: #388bfd; --purple: #a371f7; --green: #3fb950;
     --red: #f85149; --orange: #d29922; --teal: #2dd4bf;
   }
-  body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; padding: 24px 16px 60px; }
+  body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; padding: 16px 12px 80px; -webkit-tap-highlight-color: transparent; }
+  /* Safe area pour iPhone */
+  @supports (padding: max(0px)) {
+    body { padding-bottom: max(80px, calc(60px + env(safe-area-inset-bottom))); padding-top: max(16px, env(safe-area-inset-top)); }
+  }
 
   .header { text-align: center; margin-bottom: 20px; }
   .badge { display: inline-flex; align-items: center; gap: 8px; background: linear-gradient(90deg,#1f3a6e,#2d1f6e); border: 1px solid #388bfd44; padding: 6px 18px; border-radius: 30px; font-size: 11px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: #93bbfd; margin-bottom: 12px; }
@@ -33,10 +43,21 @@
   .stat-val { font-size: 22px; font-weight: 800; margin: 2px 0; }
   .stat-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
 
-  .tabs { display: flex; gap: 4px; justify-content: center; flex-wrap: wrap; margin-bottom: 22px; }
-  .tab { padding: 8px 16px; border-radius: 8px; border: 1px solid transparent; cursor: pointer; font-size: 13px; font-weight: 600; color: var(--muted); background: var(--surface); transition: all 0.2s; font-family: 'DM Sans', sans-serif; }
-  .tab:hover { color: var(--text); border-color: var(--border); }
-  .tab.active { background: linear-gradient(90deg,#1f3a6e,#2d1f6e); color: #93bbfd; border-color: #388bfd55; }
+  .tabs { 
+    display: flex; gap: 0; justify-content: space-around;
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background: #161b22; border-top: 1px solid var(--border);
+    padding: 8px 4px; padding-bottom: max(8px, env(safe-area-inset-bottom));
+    z-index: 100; margin: 0;
+  }
+  .tab { 
+    flex: 1; padding: 6px 4px; border-radius: 8px; border: none;
+    cursor: pointer; font-size: 11px; font-weight: 600; color: var(--muted);
+    background: transparent; transition: all 0.2s; font-family: 'DM Sans', sans-serif;
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+  }
+  .tab:hover { color: var(--text); }
+  .tab.active { color: #93bbfd; background: #1f3a6e44; border-radius: 10px; }
 
   .content { max-width: 800px; margin: 0 auto; }
   .panel { display: none; }
@@ -162,10 +183,10 @@
 </div>
 
 <div class="tabs">
-  <button class="tab active" onclick="showTab('employes',this)">👤 Employés</button>
-  <button class="tab" onclick="showTab('postes',this)">🏢 Postes</button>
-  <button class="tab" onclick="showTab('planning',this)">📅 Planning</button>
-  <button class="tab" onclick="showTab('export',this)">📤 Export Excel</button>
+  <button class="tab active" onclick="showTab('employes',this)"><span style="font-size:20px">👤</span><span>Employés</span></button>
+  <button class="tab" onclick="showTab('postes',this)"><span style="font-size:20px">🏢</span><span>Postes</span></button>
+  <button class="tab" onclick="showTab('planning',this)"><span style="font-size:20px">📅</span><span>Planning</span></button>
+  <button class="tab" onclick="showTab('export',this)"><span style="font-size:20px">📤</span><span>Export</span></button>
 </div>
 
 <div class="content">
